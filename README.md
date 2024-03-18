@@ -4,6 +4,7 @@ Connect-a-Beam is a construction set that was designed to be easily 3d printed a
 
 Advantages:
 - printable without supports
+- printable with PLA
 - printable with 0.6 nozzle (faster and does not have to be that precise)
 - big parts (at least most of them)
 - quick & easy assembly, just click parts together with connectors
