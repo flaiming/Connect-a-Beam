@@ -7,7 +7,8 @@
  * Changelog
  * - 2024-04-13: v1.0 - Initial version
  *
- * - 2024-10-20: v1.1 - Refactored connector thickness
+ * - 2024-10-20: v1.1 - Beam grooves for fixed connector rotated 45 degrees to make the beam more sturdy. 
+ *                    - Refactored connector thickness.
 */
 
 /* [Base params] */
