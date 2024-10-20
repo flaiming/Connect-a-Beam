@@ -5,7 +5,9 @@
 
 /*
  * Changelog
- * - 2024-03-27: V1.0 - Initial version
+ * - 2024-04-13: v1.0 - Initial version
+ *
+ * - 2024-10-20: v1.1 - Refactored connector thickness
 */
 
 /* [Base params] */
@@ -33,16 +35,19 @@ beam_holes_y = true;
 cylindric_edges = false;
 beam_half_size=false;
 
-connector_is_fixed = false;
+connector_is_fixed = true;
 connector_45_rotation = false;
 connector_length_multiplier = 1;
 connector_half_size=false;
+connector_tight_fit=false;
+connector_thickness=connector_wall_thickness + (connector_tight_fit ? 0.12 : 0);
 
 /* [Wheel] */
 
 ring_rounding = base_size/5;
 wheel_type = "normal"; // ["small", "smaller", "normal"]
 wheel_have_holes = true;
+wheel_hole_fixed = false;
 
 /* [Rod] */
 
@@ -59,10 +64,9 @@ rod_spacer_half = 0;
 cog_clearance=tolerance;
 size_with_clearance=base_size - cog_clearance;
 
-
 if (part_type == "connector") {
     rotate([90, 0, 0])
-    connector(half_size=connector_half_size);
+    connector(half_size=connector_half_size, fixed=connector_is_fixed);
     
 } else if (part_type == "2connect") {
 
@@ -85,7 +89,7 @@ if (part_type == "connector") {
             size_z=beam_size_z, 
             holes_x=beam_holes_x, 
             holes_y=beam_holes_y,
-            half_size=beam_half_size,
+            half_size=beam_half_size
         );
     }
 
@@ -101,11 +105,11 @@ if (part_type == "connector") {
 
 } else if (part_type == "wheel") {
     if (wheel_type == "small") {
-        wheel(base_size - tolerance*2, rounding=ring_rounding);
+        wheel(base_size - tolerance*2, rounding=ring_rounding, hole_fixed=wheel_hole_fixed);
     } else if (wheel_type == "smaller") {
-        wheel(base_size*0.8 - tolerance*2, rounding=ring_rounding);
+        wheel(base_size*0.8 - tolerance*2, rounding=ring_rounding, hole_fixed=wheel_hole_fixed);
     } else if (wheel_type == "normal") {
-        wheel(base_size*1.5, rounding=ring_rounding, have_holes=wheel_have_holes);
+        wheel(base_size*1.5, rounding=ring_rounding, have_holes=wheel_have_holes, hole_fixed=wheel_hole_fixed);
     }
 
 } else if (part_type == "wheel_zipline") {
@@ -246,10 +250,12 @@ module inner_cylinder(fix_cut_top=true, fix_cut_bottom=true, top_cut=false, beve
             
             if (fix_cut_bottom) {
                 // bottom stopper cut
+                rotate([0, 0, 45])
                 cylinder(h=peg_space, d=hole_d + peg_space*2, $fn=4);
                 
                 if (bevel) {
                     // bottom cut bevel
+                    rotate([0, 0, 45])
                     translate([0, 0, peg_space])
                     cylinder(h=peg_space*3, d1=hole_d + peg_space*2, d2=0, $fn=4);    
                 }
@@ -258,11 +264,13 @@ module inner_cylinder(fix_cut_top=true, fix_cut_bottom=true, top_cut=false, beve
                 if (bevel) {
                     // top cut bevel
                     translate([0, 0, cylinder_height - peg_space*3])
+                    rotate([0, 0, 45])
                     cylinder(h=peg_space*2, d1=0, d2=hole_d + peg_space*2, $fn=4);
                 }
                 
                 // top stopper cut
                 translate([0, 0, cylinder_height - peg_space])
+                rotate([0, 0, 45])
                 cylinder(h=peg_space, d=hole_d + peg_space*2, $fn=4);
             }
             
@@ -421,7 +429,7 @@ module connector_half(fixed=false, fixed_with_45_rotation=false, bottom_stopper=
                     // B
                     [
                         0, 
-                        bottom_stopper ? connector_wall_thickness + peg_space/2 : connector_wall_thickness + tolerance/2],
+                        bottom_stopper ? connector_wall_thickness + peg_space/2 : connector_thickness],
                     // C
                     [
                         peg_space/2 - tolerance/2, 
@@ -429,7 +437,7 @@ module connector_half(fixed=false, fixed_with_45_rotation=false, bottom_stopper=
                     // D
                     [
                         peg_space/2 + clip_bevel - tolerance/2, 
-                        connector_wall_thickness + tolerance/2],
+                        connector_thickness],
                     // E
                     [peg_space/2 + clip_bevel - tolerance/2, 0],
                 ]);
@@ -444,11 +452,11 @@ module connector_half(fixed=false, fixed_with_45_rotation=false, bottom_stopper=
                 // D
                 [
                     0, 
-                    connector_wall_thickness + tolerance/2],
+                    connector_thickness],
                 // E
                 [
                     top_stopper ? connector_length - peg_space/2 - clip_bevel + tolerance/2 : connector_length, 
-                    connector_wall_thickness + tolerance/2],
+                    connector_thickness],
                 [
                     top_stopper ? connector_length - peg_space/2 - clip_bevel + tolerance/2 : connector_length, 
                     0
@@ -466,7 +474,7 @@ module connector_half(fixed=false, fixed_with_45_rotation=false, bottom_stopper=
                         0
                     ],
                     // E
-                    [connector_length - peg_space/2 - clip_bevel + tolerance/2, connector_wall_thickness + tolerance/2],
+                    [connector_length - peg_space/2 - clip_bevel + tolerance/2, connector_thickness],
                     // F
                     [connector_length - peg_space/2 - tolerance/2, connector_wall_thickness + peg_space/3],
                     // G
@@ -495,32 +503,32 @@ module connector_half(fixed=false, fixed_with_45_rotation=false, bottom_stopper=
     }
 
     // full cylinder in the middle
-    cylinder(h=base_size/6, d=hole_d - tolerance);
+    cylinder(h=base_size/6, d=hole_d - tolerance*2);
 }
 
 
-module connector(half_size=false) {
+module connector(half_size=false, fixed=false) {
     intersection() {
         union() {
 
             if (connector_half_size) {
-                connector_half(fixed=connector_is_fixed);
+                connector_half(fixed=fixed);
                 
             } else if (connector_length_multiplier > 0) {
-                //connector_half(fixed=connector_is_fixed, bottom_stopper=true, top_stopper=false);
+                //connector_half(fixed=fixed, bottom_stopper=true, top_stopper=false);
             
                 for (i = [0: connector_length_multiplier-1]) {
                     translate([0, 0, base_size * i])
                     connector_half(
                         bottom_stopper=i == 0, 
                         top_stopper=i == connector_length_multiplier-1, 
-                        fixed=i == 0 ? connector_is_fixed : false,
+                        fixed=i == 0 ? fixed : false
                     );
                 }
 
             }
             mirror([0, 0, 1])
-            connector_half(fixed=connector_is_fixed, fixed_with_45_rotation=connector_45_rotation, half_size=half_size);
+            connector_half(fixed=fixed, fixed_with_45_rotation=connector_45_rotation, half_size=half_size);
             
         }
         cube([base_size*2, base_size - base_size/2, base_size*(connector_length_multiplier+1)*2], center=true);
@@ -540,7 +548,7 @@ module ring(size, rounding) {
     circle(r = rounding , $fn=100);
 }
 
-module wheel(size, rounding, have_holes=false, is_zipline=false) {
+module wheel(size, rounding, have_holes=false, is_zipline=false, hole_fixed=false) {
     difference() {
         hull() {
             translate([0, 0, rounding])
@@ -550,7 +558,7 @@ module wheel(size, rounding, have_holes=false, is_zipline=false) {
             ring(size, rounding);
         }    
         
-        inner_cylinder(fix_cut_top=false, fix_cut_bottom=false);
+        inner_cylinder(fix_cut_top=false, fix_cut_bottom=false, fixed=hole_fixed);
         
         if (have_holes) {
             for (i = [0: 5]) {
